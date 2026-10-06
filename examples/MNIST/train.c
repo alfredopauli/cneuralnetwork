@@ -201,10 +201,15 @@ int main(void)
   size_t batch_size = 256;
   double learning_step = 0.1;
 
-  const size_t shape[] = {784, 128, 64, 10};
   neural_network nn;
-  nn_create(&nn, sizeof(shape) / sizeof(size_t), shape);
-  nn_randomize(&nn);
+  const char *file_name = "model";
+  const size_t shape[] = {784, 128, 64, 10};
+  if (nn_load(&nn, file_name) == -1)
+  {
+    printf("LOG: Could not open Neural Network from file. Creating new randomized one.\n");
+    nn_create(&nn, sizeof(shape) / sizeof(size_t), shape);
+    nn_randomize(&nn);
+  }
   
   size_t epoch;
   size_t i;
@@ -243,8 +248,11 @@ int main(void)
     }
     accuracy = 100.0*(float)correct_count/(float)test_size;
     printf("\n\033[33mLOG: accuracy \033[1m%.2f%%\n\033[m", accuracy);
-  }
-  
+    printf("LOG: Saving model. ");
+    nn_save(&nn, file_name);
+    printf("Success!\n");
+  }  
+
   nn_free(&nn);
 
   mat_free_array(train_images, train_size);

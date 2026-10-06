@@ -61,6 +61,48 @@ void nn_create(neural_network *nn, const size_t size, const size_t *shape)
   }
 }
 
+int nn_load(neural_network *nn, const char *file_name)
+{
+  FILE *file = fopen(file_name, "rb");
+  if (file == NULL)
+  {
+    printf("ERROR: Could not load file.\n");
+    return -1;
+  }
+  size_t size; 
+  fread(&size, sizeof(size_t), 1, file);
+  size_t shape[size];
+  fread(shape, sizeof(size_t), size, file);
+  nn_create(nn, size, shape);
+  size_t i;
+  
+  // Get max weight size
+  size_t max_size = 0;
+  size_t msize;
+  for (size_t i=0; i < nn->size-1; i++)
+  {
+    msize = shape[i] * shape[i+1];
+    if (msize > max_size)
+      max_size = msize;
+  }
+  
+  double buffer[max_size];
+  size_t wsize;
+  size_t bsize;
+  for (i=0; i < nn->size-1; i++)
+  {
+    wsize = shape[i] * shape[i+1];
+    bsize = shape[i+1];
+    fread(buffer, sizeof(double), wsize, file);
+    mat_set_data(&nn->biases[i], buffer);
+    fread(buffer, sizeof(double), bsize, file);
+    mat_set_data(&nn->weights[i], buffer);
+  }
+
+  fclose(file);
+  return 1;
+}
+
 void nn_free(neural_network *nn)
 {
   nn->size = 0;
@@ -226,5 +268,26 @@ void nn_print(neural_network *nn)
     }
     printf("\n");
   }
+}
+
+void nn_save(neural_network *nn, const char *file_name)
+{
+  FILE *file = fopen(file_name, "wb");
+  if (file == NULL)
+  {
+    printf("ERROR: Could not load file.\n");
+    return;
+  }
+  fwrite(&nn->size, sizeof(size_t), 1, file);
+  fwrite(nn->shape, sizeof(size_t), nn->size, file);
+  
+  size_t i;
+  for (i=0; i < nn->size-1; i++)
+  {
+    fwrite(nn->weights[i].data, sizeof(double), nn->weights[i].size, file);
+    fwrite(nn->biases[i].data, sizeof(double), nn->biases[i].size, file);
+  }
+
+  fclose(file);
 }
 
