@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <math.h>
+
+#define NEURAL_NETWORK_LOG
 #include "neuralnetwork.h"
 
 static inline size_t min(size_t a, size_t b)
@@ -71,7 +73,7 @@ uint32_t read_normalized_mnist_image(mat **array, const char *file_name)
     for (j=0; j < rows*cols; j++)
       (*array)[i].data[j] = (double)data[j] / 255.0;
   }
-  printf("\n\033[32;1mLOG: Success!\033[m\n");
+  printf("\n\033[32;1mLOG: success!\033[m\n");
   
   fclose(file);
 
@@ -121,14 +123,14 @@ uint32_t read_normalized_mnist_label(mat **array, const char *file_name)
     mat_create((*array)+i, 10, 1);
     (*array)[i].data[label] = 1;
   }
-  printf("\n\033[32;1mLOG: Success!\033[m\n");
+  printf("\n\033[32;1mLOG: success!\033[m\n");
 
   fclose(file);
 
   return num_items;
 }
 
-uint8_t get_label_from_mat(mat *mat)
+uint8_t get_label_from_mat(const mat *mat)
 {
   size_t i;
   double prob;
@@ -198,17 +200,17 @@ int main(void)
   
   // Hyperparameters
   size_t epochs = 10;
-  size_t batch_size = 256;
+  size_t batch_size = 512;
   double learning_step = 0.1;
 
-  neural_network nn;
   const char *file_name = "model";
-  const size_t shape[] = {784, 128, 64, 10};
-  if (nn_load(&nn, file_name) == -1)
+  
+  neural_network *nn = nn_alloc();
+  if (nn_load(nn, file_name) == -1)
   {
     printf("LOG: Could not open Neural Network from file. Creating new randomized one.\n");
-    nn_create(&nn, sizeof(shape) / sizeof(size_t), shape);
-    nn_randomize(&nn);
+    const size_t shape[] = {784, 128, 64, 10};
+    nn_init_random(nn, sizeof(shape) / sizeof(size_t), shape);
   }
   
   size_t epoch;
@@ -221,39 +223,38 @@ int main(void)
   uint8_t max_label;
   size_t index_max;
   float accuracy;
+
   for (epoch=0; epoch < epochs; epoch++)
   {
-    printf("\033[1mLOG: epoch=%zu\033[0m\n", epoch + 1);
     // TODO: Shuffle training data before epoch
-    i=0;
-    while (i < train_size)
-    {
-      n = min(batch_size, train_size - i);
-      nn_update_batch(&nn, train_images+i, train_labels+i, n, learning_step);
-      i += n;
-      printf("\r\033[2KLOG: training %zu/%d", i, train_size);
-      fflush(stdout);
-    }
-    printf("\n");
+    
+    printf("\033[1mLOG: epoch=%zu\033[0m\n", epoch + 1);
+    
+    nn_learn(
+      nn, 
+      train_images, train_labels, (size_t)train_size, 
+      batch_size, learning_step, 2
+    );
 
     correct_count = 0;
     max_prob = -INFINITY;
     for (i=0; i < test_size; i++)
     {
-      nn_feedforward(&nn, test_images+i);
-      if (get_label_from_mat(&nn.layers[nn.size-1]) == get_label_from_mat(&test_labels[i]))
+      const mat* pred = nn_predict(nn, test_images+i);
+      if (get_label_from_mat(pred) == get_label_from_mat(&test_labels[i]))
         correct_count++;
       printf("\r\033[2KLOG: testing %zu/%d", i + 1, test_size);
       fflush(stdout);
     }
     accuracy = 100.0*(float)correct_count/(float)test_size;
     printf("\n\033[33mLOG: accuracy \033[1m%.2f%%\n\033[m", accuracy);
-    printf("LOG: Saving model. ");
-    nn_save(&nn, file_name);
-    printf("Success!\n");
+    
+    //printf("LOG: saving model. ");
+    //nn_save(nn, file_name);
+    //printf("Success!\n");
   }  
 
-  nn_free(&nn);
+  nn_free(nn);
 
   mat_free_array(train_images, train_size);
   mat_free_array(train_labels, train_size);
