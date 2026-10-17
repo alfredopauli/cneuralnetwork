@@ -1,11 +1,16 @@
+# NeuroC
+A simple deep-learning library written in C from scratch.
+
+## neuroc_multperc (Multi-layered perceptron).
+
 ```c
-#include <neuro.c>
+#include <neuro.h>
 
 int main(void)
 {
-    neuroc *nn = nn_alloc();
-    nn_init_random(nn);
-    nn_config_learn(nn, 4, 128, 0.1);
+    neuroc_multperc *nn = ncml_alloc();
+    ncml_init_random(nn);
+    ncml_config_learn(nn, 4, 128, 0.1);
     
     size_t train_size;
     matx* train_X, train_Y;
@@ -14,9 +19,9 @@ int main(void)
     size_t epochs = 10;
     size_t e;
     for (e=0; e < epochs; e++)
-        nn_learn(nn, train_X, train_Y, train_size);
+        ncml_learn(nn, train_X, train_Y, train_size);
 
-    nn_free(nn);
+    ncml_free(nn);
     return 0;
 }
 ```

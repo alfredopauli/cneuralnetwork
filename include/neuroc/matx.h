@@ -1,5 +1,5 @@
-#ifndef __MAT_H
-#define __MAT_H
+#ifndef NEUROC_MATX_H
+#define NEUROC_MATX_H
 #include <stdlib.h>
 #include <assert.h>
 

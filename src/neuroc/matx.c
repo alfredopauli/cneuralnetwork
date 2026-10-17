@@ -1,4 +1,4 @@
-#include "matx.h"
+#include "neuroc/matx.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
